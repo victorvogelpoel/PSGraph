@@ -18,39 +18,57 @@ function SubGraph
         This is just like the graph or digraph, except the name must match cluster_#
         The numbering must start at 0 and work up or the processor will fail.
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidDefaultValueForMandatoryParameter","")]
-    [cmdletbinding(DefaultParameterSetName='Default')]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidDefaultValueForMandatoryParameter", "")]
+    [cmdletbinding(DefaultParameterSetName = 'Default')]
     param(
-        # Numeric ID of subgraph starting at 0
+        # Name of subgraph
         [Parameter(
-            Mandatory = $true, 
-            Position = 0
+            Mandatory = $true,
+            Position = 0,
+            ParameterSetName = 'Named'
         )]
-        [int]
-        $ID,
+        [Parameter(
+            Mandatory = $true,
+            Position = 0,
+            ParameterSetName = 'NamedAttributes'
+        )]
+        [alias('ID')]
+        $Name,
 
         # The commands to execute inside the subgraph
         [Parameter(
-            Mandatory = $true, 
-            Position = 1,
-            ParameterSetName='Default'
+            Mandatory = $true,
+            Position = 0,
+            ParameterSetName = 'Default'
         )]
         [Parameter(
-            Mandatory = $true, 
+            Mandatory = $true,
+            Position = 1,
+            ParameterSetName = 'Named'
+        )]
+        [Parameter(
+            Mandatory = $true,
+            Position = 1,
+            ParameterSetName = 'Attributes'
+        )]
+        [Parameter(
+            Mandatory = $true,
             Position = 2,
-            ParameterSetName='Attributes'
+            ParameterSetName = 'NamedAttributes'
         )]
         [scriptblock]
         $ScriptBlock,
 
         # Hashtable that gets translated to graph attributes
         [Parameter(
-            ParameterSetName='Default'
-        )]
-        [Parameter(             
-            Mandatory = $true, 
+            Mandatory = $true,
             Position = 1,
-            ParameterSetName='Attributes'
+            ParameterSetName = 'NamedAttributes'
+        )]
+        [Parameter(
+            Mandatory = $true,
+            Position = 0,
+            ParameterSetName = 'Attributes'
         )]
         [hashtable]
         $Attributes = @{}
@@ -58,6 +76,18 @@ function SubGraph
 
     process
     {
-        Graph -Name "cluster_$ID" -ScriptBlock $ScriptBlock -Attributes $Attributes -Type 'subgraph'
+        try
+        {
+            if ( $null -eq $Name )
+            {
+                $name = ((New-Guid ) -split '-')[4]
+            }
+
+            Graph -Name "cluster$Name" -ScriptBlock $ScriptBlock -Attributes $Attributes -Type 'subgraph'
+        }
+        catch
+        {
+            $PSCmdlet.ThrowTerminatingError( $PSitem )
+        }
     }
 }

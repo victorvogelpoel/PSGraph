@@ -1,4 +1,4 @@
-function Node 
+function Node
 {
     <#
         .Description
@@ -18,21 +18,21 @@ function Node
         }
 
         .Example
-        
+
         graph g {
-            node (1..10) 
+            node (1..10)
         }
 
         .Notes
         I had conflits trying to alias Get-Node to node, so I droped the verb from the name.
         If you have subgraphs, it works best to define the node inside the subgraph before giving it an edge
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidDefaultValueForMandatoryParameter","")]
+    [Diagnostics.CodeAnalysis.SuppressMessageAttribute("PSAvoidDefaultValueForMandatoryParameter", "")]
     [cmdletbinding()]
     param(
         # The name of the node
         [Parameter(
-            Mandatory = $true, 
+            Mandatory = $true,
             ValueFromPipeline = $true,
             Position = 0
         )]
@@ -50,36 +50,62 @@ function Node
         [hashtable]
         $Attributes,
 
+        # Will automatically add these nodes to a rank
+        [Parameter()]
+        [alias('Rank')]
+        [switch]
+        $Ranked,
+
         # not used anymore but offers backward compatibility or verbosity
         [switch]
-        $Default 
+        $Default
     )
 
     process
-    {        
-        if($Name.count -eq 1 -and $Name[0] -is [hashtable] -and !$PSBoundParameters.ContainsKey('NodeScript'))
-        { 
-            # detected attept to set default values in this form 'node @{key=value}', the hashtable ends up in $name[0]
-            Node node -Attributes $Name[0] 
-        }
-        else
+    {
+        try
         {
 
-            foreach($node in $Name)
+            if (
+                $Name.count -eq 1 -and
+                $Name[0] -is [hashtable] -and
+                !$PSBoundParameters.ContainsKey( 'NodeScript' )
+            )
             {
-            
-                if($NodeScript)
+                # detected attept to set default values in this form 'node @{key=value}', the hashtable ends up in $name[0]
+                $GraphVizAttribute = ConvertTo-GraphVizAttribute -Attributes $Name[0]
+                '{0}node {1}' -f (Get-Indent), $GraphVizAttribute
+            }
+            else
+            {
+                $nodeList = @()
+                foreach ( $node in $Name )
                 {
-                    $nodeName = [string](@($node).ForEach($NodeScript))
-                }
-                else 
-                {
-                    $nodeName = $node
+                    if ( $NodeScript )
+                    {
+                        $nodeName = (@($node).ForEach($NodeScript))
+                    }
+                    else
+                    {
+                        $nodeName = $node
+                    }
+
+
+                    $GraphVizAttribute = ConvertTo-GraphVizAttribute -Attributes $Attributes -InputObject $node
+                    '{0}{1} {2}' -f (Get-Indent), (Format-Value $nodeName -Node), $GraphVizAttribute
+
+                    $nodeList += $nodeName
                 }
 
-                $GraphVizAttribute = ConvertTo-GraphVizAttribute -Attributes $Attributes -InputObject $node
-                Write-Output ('{0}{1} {2}' -f (Get-Indent), (Format-Value $nodeName -Node), $GraphVizAttribute)                           
-            }   
-        }     
+                if ($Ranked -and $null -ne $nodeList -and $nodeList.count -gt 1)
+                {
+                    Rank -Nodes $nodeList
+                }
+            }
+        }
+        catch
+        {
+            $PSCmdlet.ThrowTerminatingError( $PSitem )
+        }
     }
 }

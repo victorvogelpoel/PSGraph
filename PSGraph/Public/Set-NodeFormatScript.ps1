@@ -12,15 +12,24 @@ function Set-NodeFormatScript
     #>
     [cmdletbinding(SupportsShouldProcess)]
     param(
-        
+
         # The Scriptblock used to process every node value
         [ScriptBlock]
         $ScriptBlock = {$_}
     )
-    
-    if($PSCmdlet.ShouldProcess('Change default code id format function'))
+
+    process
     {
-        $Script:CustomFormat = $ScriptBlock
+        try
+        {
+            if ( $PSCmdlet.ShouldProcess( 'Change default code id format function' ) )
+            {
+                $Script:CustomFormat = $ScriptBlock
+            }
+        }
+        catch
+        {
+            $PSCmdlet.ThrowTerminatingError( $PSitem )
+        }
     }
-   
 }

@@ -2,12 +2,12 @@ $projectRoot = Resolve-Path "$PSScriptRoot\.."
 $moduleRoot = Split-Path (Resolve-Path "$projectRoot\*\*.psd1")
 $moduleName = Split-Path $moduleRoot -Leaf
 
-Import-Module (Join-Path $moduleRoot "$moduleName.psm1") -force
+#Import-Module (Join-Path $moduleRoot "$moduleName.psm1") -force
 
 InModuleScope -ModuleName PSGraph {
 
     Describe "$ModuleName private functions" -Tag Build {
-        
+
         Context 'Get-LayoutEngine' {
 
             it "performs basic lookups" {
@@ -19,10 +19,10 @@ InModuleScope -ModuleName PSGraph {
                     Radial            = 'twopi'
                     Circular          = 'circo'
                 }
-                foreach($layout in $layoutEngine.GetEnumerator())
+                foreach ($layout in $layoutEngine.GetEnumerator())
                 {
                     Get-LayoutEngine -Name $layout.name | Should be $layout.value
-                }            
+                }
             }
         }
 
@@ -36,28 +36,28 @@ InModuleScope -ModuleName PSGraph {
             It "Processes a hashtable" {
                 $result = Get-ArgumentLookUpTable
                 $result | Should Not BeNullOrEmpty
-                $result.gettype().name | Should Be 'Hashtable'        
-            }        
+                $result.gettype().name | Should Be 'Hashtable'
+            }
         }
-    
-  
+
+
         Context "Get-GraphVizArgument" {
-            
+
             It "Does not throw an error" {
                 {Get-GraphVizArgument} | Should Not Throw
             }
-            
+
             It "Should not throw an error with empty hashtable" {
                 {Get-GraphVizArgument @{}} | Should Not Throw
             }
 
             It "Should not throw an error with hashtable" {
-                {Get-GraphVizArgument @{OutputFormat='png'}} | Should Not Throw
+                {Get-GraphVizArgument @{OutputFormat = 'png'}} | Should Not Throw
             }
-        }  
+        }
 
         Context "Get-OutputFormatFromPath" {
-            
+
             It "Does not throw an error" {
                 {Get-OutputFormatFromPath $null} | Should Not Throw
             }
@@ -70,18 +70,18 @@ InModuleScope -ModuleName PSGraph {
             It "Handles no match correctly" {
                 Get-OutputFormatFromPath 'test.notapath' | Should BeNullOrEmpty
             }
-        } 
+        }
 
         Context "Get-TranslatedArguments" {
-            
+
             It "Does not throw an error" {
                 {Get-TranslatedArgument} | Should Not Throw
             }
             It "Translates DestinationPath" {
-                Get-TranslatedArgument @{DestinationPath='test.png'} | Should be '-otest.png'
-                Get-TranslatedArgument @{DestinationPath='test.png'} | Should not be '-o test.png'
+                Get-TranslatedArgument @{DestinationPath = 'test.png'} | Should be '-otest.png'
+                Get-TranslatedArgument @{DestinationPath = 'test.png'} | Should not be '-o test.png'
             }
-        }  
+        }
 
         Context "Update-DefaultArgument" {
 
@@ -91,6 +91,10 @@ InModuleScope -ModuleName PSGraph {
         }
 
         Context "Format-Value" {
+
+            BeforeEach {
+                Set-NodeFormatScript -ScriptBlock {$_}
+            }
 
             It "not throw an error" {
                 {Format-Value test} | Should Not Throw
@@ -104,10 +108,10 @@ InModuleScope -ModuleName PSGraph {
                 {Format-Value test -edge} | Should Not Throw
             }
 
-            It "format basic strings without quotes" {
-                Format-Value test | Should Be 'test'
-                Format-Value test -node | Should Be 'test'
-                Format-Value test -edge | Should Be 'test'
+            It "format basic strings with quotes" {
+                Format-Value test | Should Be '"test"'
+                Format-Value test -node | Should Be '"test"'
+                Format-Value test -edge | Should Be '"test"'
             }
 
             It "format basic strings with spaces in quotes" {
@@ -119,24 +123,23 @@ InModuleScope -ModuleName PSGraph {
             It "format basic strings with a colin correctly" {
                 Format-Value 'test:value' | Should Be '"test:value"'
                 Format-Value 'test:value' -node | Should Be '"test:value"'
-                Format-Value 'test:value' -edge | Should Be 'test:value'
+                Format-Value 'test:value' -edge | Should Be '"test":value'
                 Format-Value 'test value2:value' -edge | Should Be '"test value2":value'
             }
 
             It "Uses custom format script correctly" {
                 Set-NodeFormatScript -ScriptBlock {'NewValue'}
-                Format-Value 'test' | Should BeExactly 'test'
-                Format-Value 'test' -node | Should BeExactly 'NewValue'
-                Format-Value 'test' -edge | Should BeExactly 'NewValue'
+                Format-Value 'test' | Should BeExactly '"test"'
+                Format-Value 'test' -node | Should BeExactly '"NewValue"'
+                Format-Value 'test' -edge | Should BeExactly '"NewValue"'
 
-                Set-NodeFormatScript -ScriptBlock {$_.ToUpper()}                
-                Format-Value 'test' | Should BeExactly 'test'
-                Format-Value 'test' -node | Should BeExactly 'TEST'
-                Format-Value 'test' -edge | Should BeExactly 'TEST'
-                Format-Value 'test' | Should Not BeExactly 'TEST'
-                Format-Value 'test' -node | Should Not BeExactly 'test'
-                Format-Value 'test' -edge | Should Not BeExactly 'test'
-
+                Set-NodeFormatScript -ScriptBlock {$_.ToUpper()}
+                Format-Value 'test' | Should BeExactly '"test"'
+                Format-Value 'test' -node | Should BeExactly '"TEST"'
+                Format-Value 'test' -edge | Should BeExactly '"TEST"'
+                Format-Value 'test' | Should Not BeExactly '"TEST"'
+                Format-Value 'test' -node | Should Not BeExactly '"test"'
+                Format-Value 'test' -edge | Should Not BeExactly '"test"'
                 Set-NodeFormatScript
             }
 
@@ -150,42 +153,40 @@ InModuleScope -ModuleName PSGraph {
             }
 
             It "Creates well formatted attribute" {
-                ConvertTo-GraphVizAttribute @{label='test'} | Should Match '\[label=test;\]'
+                ConvertTo-GraphVizAttribute @{label = 'test'} | Should Match '\[label="test";\]'
             }
 
             It "Creates well formatted attribute with special characters" {
-                ConvertTo-GraphVizAttribute @{label='test label'} | Should Match '\[label="test label";\]'                
+                ConvertTo-GraphVizAttribute @{label = 'test label'} | Should Match '\[label="test label";\]'
             }
 
             It "Creates well formatted attribute for html tables" {
-                ConvertTo-GraphVizAttribute @{label='<table>test label</table>'} | Should Match '\[label=<<table>test label</table>>;\]'                
+                ConvertTo-GraphVizAttribute @{label = '<table>test label</table>'} | Should Match '\[label=<<table>test label</table>>;\]'
             }
 
             It "Creates multiple attributes" {
-                $result = ConvertTo-GraphVizAttribute @{label='test';arrowsize='2'} 
-                
+                $result = ConvertTo-GraphVizAttribute @{label = 'test'; arrowsize = '2'}
+
                 $result | Should Match '\['
-                $result | Should Match 'label=test;'
-                $result | Should Match 'arrowsize=2;'                
+                $result | Should Match 'label="test";'
+                $result | Should Match 'arrowsize="2";'
                 $result | Should Match ';\]'
             }
 
             It "Places graphstyle attributes on multiple lines" {
-                $result = ConvertTo-GraphVizAttribute @{label='test';arrowsize='2'} -UseGraphStyle
+                $result = ConvertTo-GraphVizAttribute @{label = 'test'; arrowsize = '2'} -UseGraphStyle
                 $result.count | Should Be 2
             }
 
             It "Creates scripted attribute on an object" {
-                $object = [pscustomobject]@{description='test'}
-                ConvertTo-GraphVizAttribute @{label={$_.description}} -InputObject $object | Should Match '\[label=test;\]'
+                $object = [pscustomobject]@{description = 'test'}
+                ConvertTo-GraphVizAttribute @{label = {$_.description}} -InputObject $object | Should Match '\[label="test";\]'
             }
 
             It "Creates scripted attribute on a hashtable" {
-                $object = @{description='test'}
-                ConvertTo-GraphVizAttribute @{label={$_.description}} -InputObject $object | Should Match '\[label=test;\]'
+                $object = @{description = 'test'}
+                ConvertTo-GraphVizAttribute @{label = {$_.description}} -InputObject $object | Should Match '\[label="test";\]'
             }
-        } 
+        }
     }
 }
-
-

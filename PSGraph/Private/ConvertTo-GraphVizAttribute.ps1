@@ -40,41 +40,63 @@ function ConvertTo-GraphVizAttribute
     #>
     param(
         [hashtable]
-        $Attributes,
+        $Attributes = @{},
 
         [switch]
         $UseGraphStyle,
 
         # used for whe the attributes have scriptblocks embeded
         [object]
-        $InputObject
+        $InputObject,
+
+        # source node for cluster edge detection
+        [string]
+        $From,
+
+        # target node for cluster edge detection
+        [string]
+        $To
     )
 
-    if($Attributes -ne $null -and $Attributes.Keys.Count -gt 0)
+    if ($null -eq $script:SubGraphList)
     {
-        $values = foreach($key in $Attributes.GetEnumerator())
+        $script:SubGraphList = @{}
+    }
+    if ( $From -and $script:SubGraphList.contains($From) )
+    {
+        $Attributes.ltail = $script:SubGraphList[$From]
+    }
+    if ( $To -and $script:SubGraphList.contains($To) )
+    {
+        $Attributes.lhead = $script:SubGraphList[$To]
+    }
+
+    if ($Attributes -ne $null -and $Attributes.Keys.Count -gt 0)
+    {
+        $values = foreach ( $key in $Attributes.GetEnumerator() )
         {
-            if($key.value -is [scriptblock])
+            if ($key.value -is [scriptblock])
             {
                 Write-Debug "Executing Script on Key $($key.name)"
-                $value = ([string](@($InputObject).ForEach($key.value))) 
+                $value = ( [string]( @( $InputObject ).ForEach( $key.value ) ) )
             }
-            else 
+            else
             {
                 $value = $key.value
             }
-            '{0}={1};'-f $key.name, (Format-Value $value)
+            '{0}={1};' -f ( Format-KeyName $key.name ), ( Format-Value $value )
         }
 
-        if($UseGraphStyle)
-        { # Graph style is each line on its own and no brackets
-            $indent = Get-Indent
-            $values | ForEach-Object{"$indent$_"}
-        }
-        else 
+        if ( $UseGraphStyle )
         {
-            "[{0}]" -f ($values -join '')
-        }            
-        
+            # Graph style is each line on its own and no brackets
+            $indent = Get-Indent
+            $values | ForEach-Object {"$indent$_"}
+        }
+        else
+        {
+            "[{0}]" -f ( $values -join '' )
+        }
+
     }
 }

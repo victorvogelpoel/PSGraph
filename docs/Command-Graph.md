@@ -1,4 +1,4 @@
-# Graph
+# Graph [string] [scriptblock]
 This is the base command that defines a graph. 
 
     graph "myGraph" {
@@ -38,11 +38,29 @@ The other thing we can do is pipe it directly to the export function to get our 
 
     graph "myGraph" {
         edge start,middle,end        
-    } Export-PSGraph -DestinationPath $path
+    } | Export-PSGraph -DestinationPath $path
 
 ## Creative use of scriptblocks
 Don't forget that the body of the graph is a Powershell script block. You can use regular Powershell inside it if you need to.
 
     graph myGraph {
         $csv | %{edge -from $_.boss -to $_.employee}
+    }
+
+# Graph and SubGraph Advanced
+
+Both Graphs and Subgraphs support attributes.
+
+## Graph [string] -Attributes [hashtable] [scriptblock]
+
+You can specify attributes in a `[hashtable]` just like for the `node` and `edge` commands.
+
+    graph g -Attributes @{label='my graph'} {
+        edge a,b,c,d,a
+    }
+
+Positional attributes also work.
+
+    graph g @{label='my graph'} {
+        edge a,b,c,d,aS
     }
